@@ -29,6 +29,7 @@ extern int gesture_swipe_down;
 extern int gesture_swipe_up;
 extern int dt2w_switch;
 bool scr_suspended(void);
+bool scr_suspended_ft(void);
 
 #endif	/* _LINUX_SCREEN_OFF_GESTURES_H */
 

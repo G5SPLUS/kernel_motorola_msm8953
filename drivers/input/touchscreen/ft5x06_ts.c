@@ -63,6 +63,10 @@ static irqreturn_t ft5x06_ts_interrupt(int irq, void *data);
 #include <linux/usb.h>
 #include <linux/power_supply.h>
 
+#ifdef CONFIG_SCREEN_OFF_GESTURES
+#include <linux/screen_off_gestures.h>
+#endif
+
 #define FT_DRIVER_VERSION	0x02
 
 #define FT_META_REGS		3
@@ -376,6 +380,14 @@ struct ft5x06_ts_data {
 	struct ft5x06_clip_area *clipa;
 	bool is_tp_registered;
 };
+
+#ifdef CONFIG_SCREEN_OFF_GESTURES
+struct ft5x06_ts_data *ft5x06_ts = NULL;
+
+bool scr_suspended_ft(void) {
+	return ft5x06_ts->suspended;
+}
+#endif
 
 static int ft5x06_ts_start(struct device *dev);
 static int ft5x06_ts_stop(struct device *dev);
@@ -1037,6 +1049,11 @@ static irqreturn_t ft5x06_ts_interrupt(int irq, void *dev_id)
 			}
 		}
 
+#ifdef CONFIG_SCREEN_OFF_GESTURES
+		if (data->suspended)
+			x += 5000;
+#endif
+
 		input_mt_slot(ip_dev, id);
 		if (status == FT_TOUCH_DOWN || status == FT_TOUCH_CONTACT) {
 			input_mt_report_slot_state(ip_dev, MT_TOOL_FINGER, 1);
@@ -1537,6 +1554,19 @@ static int ft5x06_ts_suspend(struct device *dev)
 	data->flash_enabled = false;
 	ft5x06_secure_touch_stop(data, true);
 
+#ifdef CONFIG_SCREEN_OFF_GESTURES
+	if (device_may_wakeup(dev) && (gesture_swipe_right || gesture_swipe_left || gesture_swipe_down || gesture_swipe_up || dt2w_switch)) {
+		ft5x0x_write_reg(data->client, FT_REG_GESTURE_ENABLE, 1);
+		err = enable_irq_wake(data->client->irq);
+		if (err)
+			dev_err(&data->client->dev,
+				"%s: set_irq_wake failed\n", __func__);
+		data->suspended = true;
+
+		return err;
+	}
+#endif
+
 	if (ft5x06_gesture_support_enabled() && data->pdata->gesture_support &&
 		device_may_wakeup(dev) &&
 		data->gesture_pdata->gesture_enable_to_set) {
@@ -1557,6 +1587,9 @@ static int ft5x06_ts_resume(struct device *dev)
 {
 	struct ft5x06_ts_data *data = dev_get_drvdata(dev);
 	int err;
+#ifdef CONFIG_SCREEN_OFF_GESTURES
+	int i;
+#endif
 
 	if (!data->suspended) {
 		dev_dbg(dev, "Already in awake state\n");
@@ -1565,6 +1598,27 @@ static int ft5x06_ts_resume(struct device *dev)
 
 	data->flash_enabled = true;
 	ft5x06_secure_touch_stop(data, true);
+
+#ifdef CONFIG_SCREEN_OFF_GESTURES
+	if (device_may_wakeup(dev) && (gesture_swipe_right || gesture_swipe_left || gesture_swipe_down || gesture_swipe_up || dt2w_switch)) {
+		ft5x0x_write_reg(data->client, 0xD0, 0);
+
+        /* release all touches */
+		for (i = 0; i < data->pdata->num_max_touches; i++) {
+			input_mt_slot(data->input_dev, i);
+			input_mt_report_slot_state(data->input_dev, MT_TOOL_FINGER, 0);
+		}
+		input_mt_report_pointer_emulation(data->input_dev, false);
+		input_sync(data->input_dev);
+
+		err = disable_irq_wake(data->client->irq);
+		if (err)
+			dev_err(dev, "%s: disable_irq_wake failed\n",
+				__func__);
+		data->suspended = false;
+		return err;
+	}
+#endif
 
 	if (ft5x06_gesture_support_enabled() && data->pdata->gesture_support &&
 		device_may_wakeup(dev) &&
@@ -3636,6 +3690,11 @@ static int ft5x06_ts_probe(struct i2c_client *client,
 			goto free_enable_sys;
 		}
 	}
+
+#ifdef CONFIG_SCREEN_OFF_GESTURES
+	ft5x06_ts = data;
+	device_init_wakeup(&client->dev, 1);
+#endif
 
 	err = ft5x06_ts_sysfs_class(data, true);
 	if (err) {

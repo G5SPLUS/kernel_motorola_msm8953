@@ -94,7 +94,7 @@ static struct work_struct dt2w_input_work;
 
 static bool is_suspended(void)
 {
-	return scr_suspended();
+	return scr_suspended_ft();
 }
 
 /* Doubletap2wake */
@@ -390,7 +390,7 @@ static void wg_input_event(struct input_handle *handle, unsigned int type,
 }
 
 static int input_dev_filter(struct input_dev *dev) {
-	if (strstr(dev->name, "synaptics_dsx_i2c")) {
+	if (strstr(dev->name, "ft5x06_ts")) {
 		return 0;
 	} else {
 		return 1;
