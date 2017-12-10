@@ -19,7 +19,6 @@
 #define DEF_FREQUENCY_UP_THRESHOLD		(90)
 #define DEF_FREQUENCY_DOWN_THRESHOLD		(40)
 #define DEF_FREQUENCY_SUSPENDED_THRESHOLD    	(60)
-<<<<<<< HEAD
 #define DEF_FREQUENCY_STEP			(10)
 #define DEF_SAMPLING_DOWN_FACTOR		(1)
 #define MAX_SAMPLING_DOWN_FACTOR		(10)
@@ -29,17 +28,6 @@
 
 static DEFINE_PER_CPU(struct cs_cpu_dbs_info_s, cs_cpu_dbs_info);
 static DEFINE_PER_CPU(struct cs_dbs_tuners *, cached_tuners);
-=======
-#define DEF_FREQUENCY_STEP			(6)
-#define DEF_SAMPLING_DOWN_FACTOR		(1)
-#define MAX_SAMPLING_DOWN_FACTOR		(10)
-#define DEF_OPTIMAL_FREQ                        (998400)
-#define DEF_OPTIMAL_THRESHOLD                   (60)
-#define DEFAULT_MIN_LOAD			(5)
-#define MICRO_FREQUENCY_MIN_SAMPLE_RATE	        (20000)
-
-static DEFINE_PER_CPU(struct cs_cpu_dbs_info_s, cs_cpu_dbs_info);
->>>>>>> ffc6a8e... cpufreq: add optimus governor
 
 static inline unsigned int get_freq_target(struct cs_dbs_tuners *cs_tuners,
 					   struct cpufreq_policy *policy)
@@ -133,25 +121,12 @@ static void cs_check_cpu(int cpu, unsigned int load)
 		if (policy->cur == policy->min)
 			return;
 
-<<<<<<< HEAD
-=======
-                if (load < DEFAULT_MIN_LOAD) {
- 			dbs_info->requested_freq = policy->min;
- 			goto scale_down;
- 		}
-
->>>>>>> ffc6a8e... cpufreq: add optimus governor
 		freq_target = get_freq_target(cs_tuners, policy);
 		if (dbs_info->requested_freq > freq_target)
 			dbs_info->requested_freq -= freq_target;
 		else
 			dbs_info->requested_freq = policy->min;
 
-<<<<<<< HEAD
-=======
-scale_down:
-
->>>>>>> ffc6a8e... cpufreq: add optimus governor
 		__cpufreq_driver_target(policy, dbs_info->requested_freq,
 				CPUFREQ_RELATION_L);
 		return;
@@ -412,7 +387,6 @@ static struct attribute_group cs_attr_group_gov_pol = {
 
 /************************** sysfs end ************************/
 
-<<<<<<< HEAD
 static void save_tuners(struct cpufreq_policy *policy,
 			  struct cs_dbs_tuners *tuners)
 {
@@ -429,20 +403,13 @@ static void save_tuners(struct cpufreq_policy *policy,
 }
 
 static struct cs_dbs_tuners *alloc_tuners(struct cpufreq_policy *policy)
-=======
-static int cs_init(struct dbs_data *dbs_data)
->>>>>>> ffc6a8e... cpufreq: add optimus governor
 {
 	struct cs_dbs_tuners *tuners;
 
 	tuners = kzalloc(sizeof(*tuners), GFP_KERNEL);
 	if (!tuners) {
 		pr_err("%s: kzalloc failed\n", __func__);
-<<<<<<< HEAD
 		return ERR_PTR(-ENOMEM);
-=======
-		return -ENOMEM;
->>>>>>> ffc6a8e... cpufreq: add optimus governor
 	}
 
 	tuners->up_threshold = DEF_FREQUENCY_UP_THRESHOLD;
@@ -452,7 +419,6 @@ static int cs_init(struct dbs_data *dbs_data)
 	tuners->freq_step = DEF_FREQUENCY_STEP;
         tuners->optimal_freq = DEF_OPTIMAL_FREQ;
 
-<<<<<<< HEAD
         save_tuners(policy, tuners);
 
 	return tuners;
@@ -481,8 +447,6 @@ static int cs_init(struct dbs_data *dbs_data, struct cpufreq_policy *policy)
 			return PTR_ERR(tuners);
 	}
 
-=======
->>>>>>> ffc6a8e... cpufreq: add optimus governor
 	dbs_data->tuners = tuners;
         dbs_data->min_sampling_rate = MICRO_FREQUENCY_MIN_SAMPLE_RATE;
 	mutex_init(&dbs_data->mutex);
@@ -491,11 +455,7 @@ static int cs_init(struct dbs_data *dbs_data, struct cpufreq_policy *policy)
 
 static void cs_exit(struct dbs_data *dbs_data)
 {
-<<<<<<< HEAD
        //nothing to do
-=======
-	kfree(dbs_data->tuners);
->>>>>>> ffc6a8e... cpufreq: add optimus governor
 }
 
 define_get_cpu_dbs_routines(cs_cpu_dbs_info);
@@ -544,16 +504,12 @@ static int __init cpufreq_gov_dbs_init(void)
 
 static void __exit cpufreq_gov_dbs_exit(void)
 {
-<<<<<<< HEAD
         int cpu;
 	cpufreq_unregister_governor(&cpufreq_gov_optimus);
         for_each_possible_cpu(cpu) {
 		kfree(per_cpu(cached_tuners, cpu));
 		per_cpu(cached_tuners, cpu) = NULL;
 	}
-=======
-	cpufreq_unregister_governor(&cpufreq_gov_optimus);
->>>>>>> ffc6a8e... cpufreq: add optimus governor
 }
 
 MODULE_AUTHOR("Alexander Clouter <alex@digriz.org.uk>");
