@@ -1,16 +1,17 @@
 /*
- * Maple I/O Scheduler
- * Based on Zen and SIO.
- *
- * Copyright (C) 2016 Joe Maples <joe@frap129.org>
- *           (C) 2012 Brandon Berhent <bbedward@gmail.com
- *           (C) 2012 Miguel Boton <mboton@gmail.com>
- *
- * Maple uses a first come first serve style algorithm with seperated read/write
- * handling to allow for read biases. By prioritizing reads, simple tasks should
- * improve in performance. Maple also uses hooks for the state notifier driver
- * to increase expirations when power is suspended to decrease workload.
- */
+* Maple I/O Scheduler
+* Heavily based on Zen, with some parts from Tripndroid.
+* Based on Zen and TripNDroid.
+*
+* Copyright (C) 2012 Brandon Berhent <bbedward@gmail.com>
+*           (C) 2014 LoungeKatt <twistedumbrella@gmail.com>
+*				 2015 Fixes to stop crashing on 3.10 by Matthew Alex <matthewalex@outlook.com>
+*           (C) 2016 Joe Maples <joe@frap129.org>
+*
+* Maple uses Zen's first come first serve style algorithm with seperated read/write
+* expiry to allow for read biases. By prioritizing reads, simple tasks should improve
+* in performance.
+*/
 #include <linux/blkdev.h>
 #include <linux/elevator.h>
 #include <linux/bio.h>
@@ -24,12 +25,12 @@
 enum { ASYNC, SYNC };
 
 /* Tunables */
-static const int sync_read_expire = 350;	/* max time before a read sync is submitted. */
-static const int sync_write_expire = 550;	/* max time before a write sync is submitted. */
-static const int async_read_expire = 250;	/* ditto for read async, these limits are SOFT! */
-static const int async_write_expire = 450;	/* ditto for write async, these limits are SOFT! */
-static const int fifo_batch = 16;		/* # of sequential requests treated as one by the above parameters. */
-static const int writes_starved = 1;		/* max times reads can starve a write */
+static const int sync_read_expire = 100;		/* max time before a read sync is submitted. */
+static const int sync_write_expire = 350;		/* max time before a write sync is submitted. */
+static const int async_read_expire = 200;		/* ditto for read async, these limits are SOFT! */
+static const int async_write_expire = 500;		/* ditto for write async, these limits are SOFT! */
+static const int fifo_batch = 16;				/* # of sequential requests treated as one by the above parameters. */
+static const int writes_starved = 1;			/* max times reads can starve a write */
 static const int sleep_latency_multiple = 10;	/* multple for expire time when device is asleep */
 
 /* Elevator data */
@@ -87,7 +88,6 @@ maple_add_request(struct request_queue *q, struct request *rq)
 	 * Add request to the proper fifo list and set its
 	 * expire time.
 	 */
-
    	if (display_on && mdata->fifo_expire[sync][dir]) {
    		rq->fifo_time = jiffies + mdata->fifo_expire[sync][dir];
    		list_add_tail(&rq->queuelist, &mdata->fifo_list[sync][dir]);
@@ -121,7 +121,7 @@ maple_choose_expired_request(struct maple_data *mdata)
 {
 	struct request *rq_async_read = maple_expired_request(mdata, ASYNC, READ);
 	struct request *rq_async_write = maple_expired_request(mdata, ASYNC, WRITE);
-    struct request *rq_sync_read = maple_expired_request(mdata, SYNC, READ);
+	struct request *rq_sync_read = maple_expired_request(mdata, SYNC, READ);
 	struct request *rq_sync_write = maple_expired_request(mdata, SYNC, WRITE);
 
 	/* Reset (non-expired-)batch-counter */
@@ -133,7 +133,7 @@ maple_choose_expired_request(struct maple_data *mdata)
 	 * Read requests have priority over write.
 	 */
 
-    if (rq_async_read)
+	 if (rq_async_read)
 		return rq_async_read;
 	else if (rq_sync_read)
 		return rq_sync_read;
@@ -171,7 +171,6 @@ maple_choose_request(struct maple_data *mdata, int data_dir)
 		return rq_entry_fifo(async[data_dir].next);
 	if (!list_empty(&sync[data_dir]))
 		return rq_entry_fifo(sync[data_dir].next);
-
 	if (!list_empty(&async[!data_dir]))
 		return rq_entry_fifo(async[!data_dir].next);
 	if (!list_empty(&sync[!data_dir]))
@@ -226,7 +225,6 @@ maple_dispatch_requests(struct request_queue *q, int force)
 		if (!rq)
 			return 0;
 	}
-
 	/* Dispatch request */
 	maple_dispatch_request(mdata, rq);
 
