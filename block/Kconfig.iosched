@@ -132,11 +132,8 @@ config DEFAULT_IOSCHED
 	default "cfq" if DEFAULT_CFQ
 	default "bfq" if DEFAULT_BFQ
 	default "noop" if DEFAULT_NOOP
-<<<<<<< HEAD
 	default "tripndroid" if DEFAULT_TRIPNDROID
-=======
 	default "maple" if DEFAULT_MAPLE
->>>>>>> eafc742... block: [Introduded for 3.18.y] Add Maple I/O Scheduler
 
 endmenu
 
